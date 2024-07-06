@@ -6,10 +6,11 @@ from django.http import HttpRequest
 from NumberCollection.views import utils
 from rest_framework.serializers import ModelSerializer
 from NumberCollection.models.model import BasicModel
+from django.db.models import Q
 from typing import *
 
 class BasicCrud():
-    def __init__(self, model:BasicModel, serializer:ModelSerializer):
+    def createCrud(self, model:BasicModel, serializer:ModelSerializer):
         self.Model:BasicModel = model
         self.Serializer:ModelSerializer = serializer
 
@@ -66,27 +67,65 @@ class BasicCrud():
                 return self.DELETE(request, uuid)
             
 class BasicFilter():
-    def __init__(self, model:BasicModel, serializer:ModelSerializer):
+    def createFilter(self, model:BasicModel, serializer:ModelSerializer, supported_operators:List[str] = None):
         self.Model:BasicModel = model
         self.Serializer:ModelSerializer = serializer
         self.fields_mapper:Dict[str,str] = {}
-
+        self.operator_map:Dict[str,str] = {
+            '>': 'gt',
+            '>=': 'gte',
+            '<': 'lt',
+            '<=': 'lte',
+            "!=": 'ne',
+            'not_sensitive_has': 'contains',
+            'not_has': 'icontains',
+            'sensitive_has': 'contains',
+            'has': 'icontains',
+            'is': 'exact',
+            'not_is': 'exact',
+        }
+    
     def MapFields(self, filter:Dict[str,str]):
         return {self.fields_mapper[key]: value for key,value in filter.items() if key in self.fields_mapper}
 
     
-    @csrf_exempt
-    def Search(self, request:HttpRequest):
-        filterForm = self.MapFields(JSONParser().parse(request))
+    def filter_mapper(self, operator:str, key:str, value:str):
+        if operator.startswith('not_'):
+            for op in self.operator_map:
+                if operator == op:
+                    return ~Q(**{f'{key}__{self.operator_map[op]}': value})
+        else:
+            for op in self.operator_map:
+                if operator == op:
+                    return Q(**{f'{key}__{self.operator_map[op]}': value})
+            
 
+    @csrf_exempt
+    def search(self, request:HttpRequest):
+        filterForm = self.MapFields(JSONParser().parse(request))
+        print(filterForm)
         # filtra os dados que não existem no modelo
         model_fields = [field.name for field in self.Model._meta.get_fields()]
         filterForm = {key: value for key,value in filterForm.items() if key in model_fields}
         
-        print("Dados filtrados: ", filterForm)
+        filter_expressions = Q()
+        try:
+            for key, value in filterForm.items():
+                if key in model_fields:
+                    if isinstance(value, str):
+                        if ' ' in value:
+                            operator, *field = value.split(' ')
+                            field = ' '.join(field)
+                            if operator in self.operator_map:
+                                filter_expressions &= self.filter_mapper(operator, key, field)
+                        else:
+                            filter_expressions &= Q(**{key: value})
+                    else:
+                        filter_expressions &= Q(**{key: value})
+        except Exception as e:
+            print(e)
+            return JsonResponse({'message': 'Invalid filter'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if filterForm:
-            data = self.Model.objects.filter(**filterForm)
-            serializer:ModelSerializer = self.Serializer(data, many=True)
-            return JsonResponse(serializer.data, safe=False)
-        return JsonResponse(utils.NO_DATA_FOUND, status=status.HTTP_404_NOT_FOUND)
+        data = self.Model.objects.filter(filter_expressions)
+        serializer:ModelSerializer = self.Serializer(data, many=True)
+        return JsonResponse(serializer.data, safe=False)
