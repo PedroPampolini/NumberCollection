@@ -19,20 +19,3 @@ class NumberView(BasicCrud, BasicFilter):
             'prime': 'is_prime'
         }
 
-    def POST(self, request: HttpRequest):
-        number = JSONParser().parse(request)
-        number_serializer = NumberSerializer(data=number)
-        
-        if number_serializer.is_valid():
-            number_serializer.validated_data['is_prime'] = self.is_prime(number['number'])
-            number_serializer.save()
-            return JsonResponse(number_serializer.data, status=status.HTTP_201_CREATED)
-        return JsonResponse(number_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def is_prime(self,number):
-        if number < 2:
-            return False
-        for i in range(2, number//2 + 1):
-            if number % i == 0:
-                return False
-        return True

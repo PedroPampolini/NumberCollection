@@ -5,9 +5,25 @@ class Number(BasicModel):
     class Meta:
         db_table = "numbers"
 
-    number = models.DecimalField(max_digits=10, decimal_places=0)
+    # tipo bigint
+    number = models.BigIntegerField(blank=False, null=False)
     is_prime = models.BooleanField(blank=True, null=True, default=False)
 
     def __str__(self):
-        return self.username
+        return self.number
+    
+    # checa se é primo antes de salvar
+    def save(self, *args, **kwargs):
+        self.is_prime = self.is_prime_number()
+        super(Number, self).save(*args, **kwargs)
+
+
+    # OTIMIZAR
+    def is_prime_number(self):
+        if self.number < 2:
+            return False
+        for i in range(2, self.number//2 + 1):
+            if self.number % i == 0:
+                return False
+        return True
         
