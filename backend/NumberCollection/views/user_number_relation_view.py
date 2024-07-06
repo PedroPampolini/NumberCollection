@@ -5,7 +5,8 @@ from NumberCollection.views.view_interface import BasicCrud
 
 class UserNumberRelationView(BasicCrud):
     def __init__(self):
-        super().__init__(UserNumberRelations, UserNumberRelationsSerializer)
-        
+        super().__init__()
+        self.createCrud(UserNumberRelations, UserNumberRelationsSerializer)
+
     
 
