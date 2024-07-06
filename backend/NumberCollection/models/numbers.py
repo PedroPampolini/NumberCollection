@@ -20,10 +20,16 @@ class Number(BasicModel):
 
     # OTIMIZAR
     def is_prime_number(self):
-        if self.number < 2:
+        if self.number <= 1:
             return False
-        for i in range(2, self.number//2 + 1):
-            if self.number % i == 0:
+        if self.number <= 3:
+            return True
+        if self.number % 2 == 0 or self.number % 3 == 0:
+            return False
+        i = 5
+        while i * i <= self.number:
+            if self.number % i == 0 or self.number % (i + 2) == 0:
                 return False
+            i += 6
         return True
         
