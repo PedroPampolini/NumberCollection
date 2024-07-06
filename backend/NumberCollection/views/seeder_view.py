@@ -13,7 +13,7 @@ def seed_user(request):
     match(request.method):
         case 'POST':
             seeder = JSONParser().parse(request)
-            quantity = seeder['quantity']
+            quantity = seeder['quantity'] if 'quantity' in seeder else 1
             for i in range(quantity):
                 user_json = generate_user()
                 user_serializer = UserSerializer(data=user_json)
@@ -22,14 +22,10 @@ def seed_user(request):
                 else:
                     return JsonResponse(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             return JsonResponse({'message': 'Users seeded'}, status=status.HTTP_201_CREATED)
-            
-
         case _:
-            print("Metodo ruim")
             return JsonResponse({'message': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         
 def generate_user():
-    # pega os campos do user pra deixar padrinizado
     user = UserSerializer().data
     user['username'] = generate_lorem_ipsum(3)
     user['password'] = 'password'

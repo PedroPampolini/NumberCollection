@@ -4,4 +4,4 @@ from NumberCollection.models.users import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'uuid', 'username', 'password', 'email', 'phone', 'address', 'created_at', 'updated_at')
+        fields = ('uuid','username', 'password', 'email', 'phone', 'address', 'created_at', 'updated_at')
